@@ -21,13 +21,21 @@ const url = require("url");
 
 // //////////////////////////////////////////////////////////////////
 // Create server
+
+const data = fs.readFileSync(`${__dirname}/dev-data/data.json`, "utf-8");
+
 const server = http.createServer((req, res) => {
   console.log(req.url);
   const pathname = req.url;
-  if (pathname === "/overview") {
+  if (pathname === "/overview" || pathname === "/") {
     res.end("This is overview page");
   } else if (pathname === "/products") {
     res.end("This is product page");
+  } else if (pathname === "/api") {
+    res.writeHead(200, {
+      "Content-type": "application/json",
+    });
+    res.end(data);
   } else {
     res.writeHead(404, {
       "Content-Type": "text/html",
