@@ -30,6 +30,18 @@ exports.getAllTours = async (req, res) => {
       query = query.select('-__v');
     }
 
+    // 4 Pagination
+    const page = req.query.page * 1 || 1;
+    const limit = req.query.limit * 1 || 100;
+    const skip = (page - 1) * limit;
+
+    query = query.skip(skip).limit(limit);
+
+    if (req.query.page) {
+      const numTours = await Tour.countDocuments();
+      if (skip >= numTours) throw new Error("This page doesn't exist");
+    }
+
     // Execute Query
     const tours = await query;
 
@@ -43,7 +55,7 @@ exports.getAllTours = async (req, res) => {
   } catch (error) {
     return res.status(400).json({
       status: 'fail',
-      message: 'Invalid input',
+      message: error.message,
     });
   }
 };
