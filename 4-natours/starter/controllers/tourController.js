@@ -1,6 +1,15 @@
 const Tour = require('../models/tourModel');
 
+exports.aliasesTop5Cheap = async (req, res, next) => {
+  console.log(req.query);
+  req.query.limit = '5';
+  req.query.fields = 'name,price,difficulty,summary,ratingAverage';
+  req.query.sort = '-ratingAverage,price';
+
+  next();
+};
 exports.getAllTours = async (req, res) => {
+  console.log(req.query);
   try {
     const queryObj = { ...req.query };
     const excludedFields = ['page', 'sort', 'limit', 'fields'];
