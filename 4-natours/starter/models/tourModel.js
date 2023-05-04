@@ -82,10 +82,25 @@ tourSchema.pre('save', function (next) {
 //   this.find({ secretTour: { $ne: true } });
 //   next();
 // });
+
 tourSchema.pre(/^find/, function (next) {
   this.find({ secretTour: { $ne: true } });
+  this.startTime = Date.now();
   next();
 });
+
+tourSchema.post(/^find/, function (docs, next) {
+  console.log(
+    `time taken to complete the query: ${Date.now() - this.startTime}`
+  );
+  next();
+});
+
+tourSchema.pre('aggregate', function (next) {
+  this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
+  next();
+});
+
 tourSchema.virtual('durationWeeks').get(function () {
   return this.duration / 7;
 });
