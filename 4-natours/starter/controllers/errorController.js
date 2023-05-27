@@ -18,6 +18,18 @@ const handleValidationErrorDB = (err) => {
   return new AppError(message, 400);
 };
 
+const handleJWTError = () =>
+  new AppError('Invalid token. Please log in again!', 401);
+
+const handleJWTExpiredError = () =>
+  new AppError('Your token has expired! Please log in again.', 401);
+
+const handleJWTUserNotThereError = () =>
+  new AppError('The user belonging to this token does no longer exist.', 401);
+
+const handelJWTPasswordChangedAfterTokenCreation = () =>
+  new AppError('User recently changed password! Please log in again.', 401);
+
 const sendErrorDev = (err, res) => {
   res.status(err.statusCode).json({
     status: err.status,
@@ -33,6 +45,7 @@ const sendErrorProd = (err, res) => {
     return res.status(err.statusCode).json({
       status: err.status,
       message: err.message,
+      err,
     });
 
     // Programming or other unknown error: don't leak error details
@@ -56,6 +69,7 @@ module.exports = (err, req, res, next) => {
   if (process.env.NODE_ENV === 'development') {
     sendErrorDev(err, res);
   } else if (process.env.NODE_ENV === 'production') {
+    console.log(err);
     let error = JSON.parse(JSON.stringify(err));
     console.log(error);
 
@@ -67,6 +81,12 @@ module.exports = (err, req, res, next) => {
     }
     if (error.name === 'ValidationError')
       error = handleValidationErrorDB(error);
+    if (error.name === 'JsonWebTokenError') error = handleJWTError();
+    if (error.name === 'TokenExpiredError') error = handleJWTExpiredError();
+    if (error.special === 'user is not in db')
+      error = handleJWTUserNotThereError();
+    if (error.special === 'password changed after token creation')
+      error = handelJWTPasswordChangedAfterTokenCreation();
 
     sendErrorProd(error, res);
   }
