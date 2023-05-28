@@ -10,7 +10,7 @@ const signToken = (id) =>
   });
 
 exports.signup = catchAsync(async (req, res, next) => {
-  const { name, email, password, passwordConfirm, passwordChangedAt } =
+  const { name, email, password, passwordConfirm, passwordChangedAt, role } =
     req.body;
   const newUser = await User.create({
     name,
@@ -18,6 +18,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     password,
     passwordConfirm,
     passwordChangedAt,
+    role,
   });
   const token = signToken(newUser._id);
 
@@ -54,10 +55,13 @@ exports.protect = catchAsync(async (req, res, next) => {
   ) {
     token = req.headers.authorization.split(' ')[1];
   }
-  if (!token)
-    return next(
-      new AppError('You are not logged in! Please log in to get access.', 401)
+  if (!token) {
+    const error = new AppError(
+      'You are not logged in! Please log in to get access.',
+      401
     );
+    return next({ error: error.message, ...error });
+  }
 
   // 2. Verify Token
   const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
@@ -80,3 +84,35 @@ exports.protect = catchAsync(async (req, res, next) => {
   req.user = currentUser;
   next();
 });
+
+exports.restrictTo =
+  (...roles) =>
+  (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      const error = new AppError(
+        `You don't have permission to perform this action`,
+        403
+      );
+      return next({ error: error.message, ...error });
+    }
+
+    next();
+  };
+exports.forgotPassword = catchAsync(async (req, res, next) => {
+  console.log('body', req.body);
+  // 1 Get user based on Posted Email
+  const user = await User.findOne({ email: req.body.email });
+
+  if (!user) {
+    const error = new AppError(
+      'There is no user with given email address',
+      404
+    );
+    return next({ error: error.message, ...error });
+  }
+  // 2 Generate random reset token
+  const resetToken = user.createPasswordResetToken();
+  await user.save({ validateBeforeSave: false });
+  // 3) send it to user email
+});
+exports.resetPassword = catchAsync((req, res, next) => {});
