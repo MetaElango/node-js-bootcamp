@@ -38,16 +38,23 @@ const userSchema = new mongoose.Schema({
       message: 'Passwords are not same',
     },
   },
+  active: {
+    type: Boolean,
+    default: true,
+    select: false,
+  },
   passwordChangedAt: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
 });
+// Methods
 userSchema.methods.checkPassword = async function (
   userPassword,
   originalPassword
 ) {
   return await bcrypt.compare(userPassword, originalPassword);
 };
+
 userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
   if (this.passwordChangedAt) {
     const changedTimestamp = parseInt(
@@ -70,12 +77,17 @@ userSchema.methods.createPasswordResetToken = function () {
     .update(resetToken)
     .digest('hex');
 
-  console.log({ resetToken }, this.passwordResetToken);
-
   this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
 
   return resetToken;
 };
+
+// Pre
+userSchema.pre(/^find/, function (next) {
+  // this points to the current query
+  this.find({ active: { $ne: false } });
+  next();
+});
 
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
@@ -83,10 +95,11 @@ userSchema.pre('save', async function (next) {
   this.password = await bcrypt.hash(this.password, 12);
   this.passwordConfirm = undefined;
 });
+
 userSchema.pre('save', function (next) {
   if (!this.isModified('password') || this.isNew) return next();
 
-  this.passwordChangedAt = Date.now() - 5000;
+  this.passwordChangedAt = Date.now() - 2000;
   next();
 });
 
