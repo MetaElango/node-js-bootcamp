@@ -22,9 +22,7 @@ app.listen(port, () => {
   console.log(`listening on port ${port}.......`);
 });
 
-const tours = JSON.parse(
-  fs.readFileSync(`${__dirname}/tours-simple.json`, 'utf-8')
-);
+const tours = JSON.parse(fs.readFileSync(`${__dirname}/tours.json`, 'utf-8'));
 
 const importAll = async () => {
   try {
